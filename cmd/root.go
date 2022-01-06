@@ -21,6 +21,7 @@ func init() {
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(removeCmd)
 	rootCmd.AddCommand(queryCmd)
+	rootCmd.AddCommand(subCmd)
 
 	rootCmd.PersistentFlags().StringVar(&host, "host", "localhost", "V2ray api host")
 	rootCmd.PersistentFlags().IntVar(&port, "port", 10085, "V2ray api port")

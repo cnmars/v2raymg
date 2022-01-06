@@ -22,8 +22,6 @@ import (
 	"github.com/lureiny/v2raymg/config"
 	"github.com/lureiny/v2raymg/stats"
 	"github.com/spf13/cobra"
-	"github.com/v2fly/v2ray-core/v4/app/stats/command"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -44,22 +42,10 @@ func init() {
 }
 
 func queryStats(cmd *cobra.Command, args []string) {
-	// 创建grpc client
-	cmdConn, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
+	statsResult, err := stats.QueryAllStats(host, port)
+
 	if err != nil {
 		config.Error.Fatal(err)
-	}
-
-	statClient := command.NewStatsServiceClient(cmdConn)
-
-	// query 参数
-	queryStatsReq := command.QueryStatsRequest{
-		Pattern: "",
-		Reset_:  false,
-	}
-	statsResult, err := stats.QueryAllStats(statClient, &queryStatsReq)
-	if err != nil {
-		config.Error.Fatalf("Failed to query stats > %v", err)
 	}
 
 	unitBase := m
