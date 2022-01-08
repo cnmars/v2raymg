@@ -86,13 +86,18 @@ func (c *VlessMkcpConfig) Build() string {
 type VlessQuicConfig struct {
 	QuicSecurity string
 	Key          string
+	HeaderType   string
 }
 
 func (c *VlessQuicConfig) Build() string {
-	if c.QuicSecurity == "none" || len(c.QuicSecurity) == 0 {
-		return ""
+	params := []string{}
+	if c.QuicSecurity != "none" {
+		params = append(params, fmt.Sprintf("quicSecurity=%s&key=%s", c.QuicSecurity, c.Key))
 	}
-	return fmt.Sprintf("quicSecurity=%s&key=%s", c.QuicSecurity, c.Key)
+	if len(c.HeaderType) > 0 {
+		params = append(params, "headerType="+c.HeaderType)
+	}
+	return strings.Join(params, "&")
 }
 
 // VlessGrpcConfig grpc配置结构
@@ -116,7 +121,6 @@ func newTransportConfig(streamSetting *conf.StreamConfig) (*VlessTransportConfig
 	transportConfig := VlessTransportConfig{
 		Security: streamSetting.Security,
 	}
-	// TODO: 支持http2
 	switch string(*streamSetting.Network) {
 	case "tcp":
 		transportConfig.TransportConfig = &VlessTcpConfig{}
@@ -126,9 +130,6 @@ func newTransportConfig(streamSetting *conf.StreamConfig) (*VlessTransportConfig
 		var kcpHeader map[string]string
 		if len(kcpConfig.HeaderConfig) > 0 {
 			err := json.Unmarshal(kcpConfig.HeaderConfig, &kcpHeader)
-			if err != nil {
-				return nil, errors.New("invalid mKCP header config.")
-			}
 			if err != nil {
 				return nil, errors.New("invalid mKCP header config")
 			}
@@ -150,6 +151,16 @@ func newTransportConfig(streamSetting *conf.StreamConfig) (*VlessTransportConfig
 		var quicConfig VlessQuicConfig
 		quicConfig.Key = streamSetting.QUICSettings.Key
 		quicConfig.QuicSecurity = streamSetting.QUICSettings.Security
+		var quicHeader map[string]string
+		if len(streamSetting.QUICSettings.Header) > 0 {
+			err := json.Unmarshal(streamSetting.QUICSettings.Header, &quicHeader)
+			if err != nil {
+				return nil, errors.New("invalid quic header config.")
+			}
+			if headerType, ok := quicHeader["type"]; ok {
+				quicConfig.HeaderType = headerType
+			}
+		}
 		transportConfig.TransportConfig = &quicConfig
 	case "grpc":
 		var grpcConfig VlessGrpcConfig
@@ -157,6 +168,11 @@ func newTransportConfig(streamSetting *conf.StreamConfig) (*VlessTransportConfig
 		// 暂时不考虑xray-core
 		grpcConfig.Mode = "gun"
 		transportConfig.TransportConfig = &grpcConfig
+	case "http":
+		var httpConfig VlessHttp2Config
+		httpConfig.Host = (*streamSetting.HTTPSettings.Host)[0]
+		httpConfig.Path = streamSetting.HTTPSettings.Path
+		transportConfig.TransportConfig = &httpConfig
 	}
 	transportConfig.Security = streamSetting.Security
 	return &transportConfig, nil
