@@ -24,7 +24,7 @@ func GetUserSubUri(host string, user string, port uint32, configFile string) (st
 			if err != nil {
 				continue
 			}
-			return getVlessUri(u), nil
+			return getVlessUri(u)
 
 		case "vmess":
 			u, err := NewVmessShareConfig(&in, user, host, port)
@@ -46,7 +46,7 @@ func getVmessUri(u *VmessShareConfig) (string, error) {
 	return fmt.Sprintf("vmess://%s", base64.StdEncoding.EncodeToString(b)), nil
 }
 
-func getVlessUri(v *VlessShareConfig) string {
+func getVlessUri(v *VlessShareConfig) (string, error) {
 	uri := fmt.Sprintf("vless://%s", v.Build())
-	return uri
+	return uri, nil
 }

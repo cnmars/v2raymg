@@ -54,23 +54,51 @@ func NewVmessShareConfig(in *fileIO.InboundDetourConfig, email string, host stri
 	return v, nil
 }
 
-// TODO(lureiny): 针对不同协议底层适配
 func insertVmessStreamSetting(v *VmessShareConfig, streamSetting *conf.StreamConfig) error {
 	switch string(*streamSetting.Network) {
 	case "tcp":
 		v.Net = "tcp"
 	case "kcp":
 		v.Net = "kcp"
-		v.Path = *streamSetting.KCPSettings.Seed
+		kcpConfig := streamSetting.KCPSettings
+		v.Path = *kcpConfig.Seed
+
+		var kcpHeader map[string]string
+		if len(kcpConfig.HeaderConfig) > 0 {
+			err := json.Unmarshal(kcpConfig.HeaderConfig, &kcpHeader)
+			if err != nil {
+				return errors.New("invalid mKCP header config")
+			}
+			if headerType, ok := kcpHeader["type"]; ok {
+				v.Type = headerType
+			}
+		}
 	case "ws":
 		v.Net = "ws"
+		v.Host = streamSetting.WSSettings.Headers["Host"]
 		v.Path = streamSetting.WSSettings.Path
-	case "http":
-		v.Net = "http"
 	case "quic":
 		v.Net = "quic"
+		v.Path = streamSetting.QUICSettings.Key
+		v.Host = streamSetting.QUICSettings.Security
+		var quicHeader map[string]string
+		if len(streamSetting.QUICSettings.Header) > 0 {
+			err := json.Unmarshal(streamSetting.QUICSettings.Header, &quicHeader)
+			if err != nil {
+				return errors.New("invalid quic header config.")
+			}
+			if headerType, ok := quicHeader["type"]; ok {
+				v.Type = headerType
+			}
+		}
 	case "grpc":
 		v.Net = "grpc"
+		v.Path = streamSetting.GRPCSettings.ServiceName
+		// 暂时不考虑xray-core
+	case "http":
+		v.Net = "h2"
+		v.Host = (*streamSetting.HTTPSettings.Host)[0]
+		v.Path = streamSetting.HTTPSettings.Path
 	default:
 		return errors.New(fmt.Sprintf("Unsupport transport protocol %s", *streamSetting.Network))
 	}
