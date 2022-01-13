@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/lureiny/v2raymg/config"
 	"github.com/v2fly/v2ray-core/v4/app/stats/command"
 	"google.golang.org/grpc"
 )
@@ -29,36 +28,9 @@ func queryStats(con command.StatsServiceClient, req *command.QueryStatsRequest) 
 	}
 }
 
-func QueryStats(host string, port int) (*command.QueryStatsResponse, error) {
-	// 创建grpc client
-	cmdConn, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
-	if err != nil {
-		config.Error.Fatal(err)
-	}
-
-	statClient := command.NewStatsServiceClient(cmdConn)
-
-	// query 参数
-	queryStatsReq := command.QueryStatsRequest{
-		Pattern: "",
-		Reset_:  false,
-	}
-	resp, err := statClient.QueryStats(context.Background(), &queryStatsReq)
-
-	if err != nil {
-		return nil, err
-	} else {
-		return resp, nil
-	}
-}
-
-func queryAllStats(con command.StatsServiceClient, req *command.QueryStatsRequest) (*map[string]*MyStat, error) {
-	stats, err := queryStats(con, req)
-	if err != nil {
-		return nil, err
-	}
+func parseQueryStats(resp *command.QueryStatsResponse) (*map[string]*MyStat, error) {
 	result := make(map[string]*MyStat)
-	for _, stat := range stats.GetStat() {
+	for _, stat := range resp.GetStat() {
 		reResult := regexCompile.FindStringSubmatch(stat.GetName())
 		if _, ok := result[reResult[2]]; !ok {
 			result[reResult[2]] = &MyStat{
@@ -77,11 +49,12 @@ func queryAllStats(con command.StatsServiceClient, req *command.QueryStatsReques
 	return &result, nil
 }
 
+// QueryAllStats 查询全部用户流量信息
 func QueryAllStats(host string, port int) (*map[string]*MyStat, error) {
 	// 创建grpc client
 	cmdConn, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
 	if err != nil {
-		config.Error.Fatal(err)
+		return nil, err
 	}
 
 	statClient := command.NewStatsServiceClient(cmdConn)
@@ -91,6 +64,30 @@ func QueryAllStats(host string, port int) (*map[string]*MyStat, error) {
 		Pattern: "",
 		Reset_:  false,
 	}
-	return queryAllStats(statClient, &queryStatsReq)
+	resp, err := queryStats(statClient, &queryStatsReq)
+	if err != nil {
+		return nil, err
+	}
+	return parseQueryStats(resp)
 
+}
+
+func QueryUserStat(host string, port int, user string) (*map[string]*MyStat, error) {
+	// 创建grpc client
+	cmdConn, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	statClient := command.NewStatsServiceClient(cmdConn)
+	// query 参数
+	queryStatsReq := command.QueryStatsRequest{
+		Pattern: user,
+		Reset_:  false,
+	}
+	resp, err := queryStats(statClient, &queryStatsReq)
+	if err != nil {
+		return nil, err
+	}
+	return parseQueryStats(resp)
 }

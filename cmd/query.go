@@ -1,18 +1,3 @@
-/*
-Copyright © 2021 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
@@ -39,15 +24,10 @@ var queryCmd = &cobra.Command{
 
 func init() {
 	queryCmd.Flags().StringVarP(&unit, "unit", "u", "m", "Unit of stats. K/k or M/m or G/g")
+	queryCmd.Flags().StringVarP(&email, "email", "e", "", "user name/email which to query")
 }
 
 func queryStats(cmd *cobra.Command, args []string) {
-	statsResult, err := stats.QueryAllStats(host, port)
-
-	if err != nil {
-		config.Error.Fatal(err)
-	}
-
 	unitBase := m
 	unitSign := "M"
 
@@ -60,11 +40,31 @@ func queryStats(cmd *cobra.Command, args []string) {
 		unitSign = "G"
 	}
 
-	fmt.Printf("%20s%21s%21s\n", "User", "Downlink", "Uplink")
-	for key, value := range *statsResult {
-		if value.Type != "user" {
-			continue
+	var statsResult *map[string]*stats.MyStat
+	var err error
+	switch email {
+	case "":
+		statsResult, err = stats.QueryAllStats(host, port)
+		if err != nil {
+			config.Error.Fatal(err)
 		}
-		fmt.Printf("%20[2]s%20[3]d%[1]s%20[4]d%[1]s\n", unitSign, key, value.Downlink/int64(unitBase), value.Uplink/int64(unitBase))
+	default:
+		statsResult, err = stats.QueryUserStat(host, port, email)
+		if err != nil {
+			config.Error.Fatal(err)
+		}
+		if len(*statsResult) == 0 {
+			config.Info.Printf("No user: %s", email)
+		}
+	}
+
+	if len(*statsResult) > 0 {
+		fmt.Printf("%20s%21s%21s\n", "User", "Downlink", "Uplink")
+		for key, value := range *statsResult {
+			if value.Type != "user" {
+				continue
+			}
+			fmt.Printf("%20[2]s%20[3]d%[1]s%20[4]d%[1]s\n", unitSign, key, value.Downlink/int64(unitBase), value.Uplink/int64(unitBase))
+		}
 	}
 }
