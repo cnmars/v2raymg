@@ -9,6 +9,7 @@ import (
 	"github.com/lureiny/v2raymg/bound"
 	"github.com/lureiny/v2raymg/config"
 	"github.com/lureiny/v2raymg/fileIO"
+	protocolP "github.com/lureiny/v2raymg/protocol"
 	"github.com/spf13/cobra"
 	"github.com/v2fly/v2ray-core/v4/app/proxyman/command"
 	"github.com/v2fly/v2ray-core/v4/infra/conf"
@@ -60,7 +61,7 @@ func removeUserFromFile(user *bound.User, configFile string) error {
 	return nil
 }
 
-func removeUserFromConfig(c *fileIO.V2rayConfig, user *bound.User) error {
+func removeUserFromConfig(c *protocolP.V2rayConfig, user *bound.User) error {
 	for index := range c.InboundConfigs {
 		inBound := &(c.InboundConfigs[index])
 		if inBound.Tag == user.InBoundTag {
@@ -121,7 +122,7 @@ func removeUserLocal(cmd *cobra.Command, args []string) {
 	}
 }
 
-func removeVmessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
+func removeVmessUser(in *protocolP.InboundDetourConfig, user *bound.User) error {
 	vmessConfig := new(conf.VMessInboundConfig)
 
 	err := json.Unmarshal([]byte(*(in.Settings)), vmessConfig)
@@ -130,7 +131,7 @@ func removeVmessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
 	}
 
 	for index := range vmessConfig.Users {
-		var vmessUser fileIO.V2rayInboundUser
+		var vmessUser protocolP.V2rayInboundUser
 		json.Unmarshal(vmessConfig.Users[index], &vmessUser)
 		if vmessUser.Email == user.Email {
 			vmessConfig.Users = append(vmessConfig.Users[:index], vmessConfig.Users[index+1:]...)
@@ -150,7 +151,7 @@ func removeVmessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
 	return nil
 }
 
-func removeVlessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
+func removeVlessUser(in *protocolP.InboundDetourConfig, user *bound.User) error {
 	vlessConfig := new(conf.VLessInboundConfig)
 
 	err := json.Unmarshal([]byte(*(in.Settings)), vlessConfig)
@@ -159,7 +160,7 @@ func removeVlessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
 	}
 
 	for index := range vlessConfig.Clients {
-		var vlessUser fileIO.V2rayInboundUser
+		var vlessUser protocolP.V2rayInboundUser
 		json.Unmarshal(vlessConfig.Clients[index], &vlessUser)
 		if vlessUser.Email == user.Email {
 			vlessConfig.Clients = append(vlessConfig.Clients[:index], vlessConfig.Clients[index+1:]...)

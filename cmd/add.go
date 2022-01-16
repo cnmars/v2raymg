@@ -9,6 +9,7 @@ import (
 	"github.com/lureiny/v2raymg/bound"
 	"github.com/lureiny/v2raymg/config"
 	"github.com/lureiny/v2raymg/fileIO"
+	protocolP "github.com/lureiny/v2raymg/protocol"
 	"github.com/spf13/cobra"
 	"github.com/v2fly/v2ray-core/v4/app/proxyman/command"
 	"github.com/v2fly/v2ray-core/v4/infra/conf"
@@ -62,10 +63,6 @@ func addUserToRuntime(runtimeConfig *RuntimeConfig, user *bound.User) error {
 
 	handlerClient := command.NewHandlerServiceClient(cmdConn)
 
-	if err != nil {
-		return err
-	}
-
 	err = bound.AddUser(handlerClient, user)
 	if err != nil {
 		return err
@@ -117,7 +114,7 @@ func addUserToFile(user *bound.User, configFile string) error {
 	return nil
 }
 
-func addUserToConfig(c *fileIO.V2rayConfig, user *bound.User) error {
+func addUserToConfig(c *protocolP.V2rayConfig, user *bound.User) error {
 	for index := range c.InboundConfigs {
 		inBound := &(c.InboundConfigs[index])
 		if inBound.Tag == user.InBoundTag {
@@ -134,7 +131,7 @@ func addUserToConfig(c *fileIO.V2rayConfig, user *bound.User) error {
 	return errors.New("No inbound which has tag: " + user.InBoundTag)
 }
 
-func addVmessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
+func addVmessUser(in *protocolP.InboundDetourConfig, user *bound.User) error {
 	vmessConfig := new(conf.VMessInboundConfig)
 
 	err := json.Unmarshal([]byte(*(in.Settings)), vmessConfig)
@@ -142,7 +139,7 @@ func addVmessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
 		return err
 	}
 
-	c := fileIO.V2rayInboundUser{Email: user.Email, ID: user.UUID}
+	c := protocolP.V2rayInboundUser{Email: user.Email, ID: user.UUID}
 	cb, err := json.Marshal(c)
 	if err != nil {
 		return err
@@ -158,7 +155,7 @@ func addVmessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
 	return nil
 }
 
-func addVlessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
+func addVlessUser(in *protocolP.InboundDetourConfig, user *bound.User) error {
 	vlessConfig := new(conf.VLessInboundConfig)
 
 	err := json.Unmarshal([]byte(*(in.Settings)), vlessConfig)
@@ -166,7 +163,7 @@ func addVlessUser(in *fileIO.InboundDetourConfig, user *bound.User) error {
 		return err
 	}
 
-	c := fileIO.V2rayInboundUser{Email: user.Email, ID: user.UUID}
+	c := protocolP.V2rayInboundUser{Email: user.Email, ID: user.UUID}
 	cb, err := json.Marshal(c)
 	if err != nil {
 		return err
